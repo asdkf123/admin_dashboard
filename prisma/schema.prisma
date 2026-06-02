@@ -48,6 +48,58 @@ enum NotifyType {
   announcement
 }
 
+enum TicketCategory {
+  fault
+  maintenance_request
+  inquiry
+  other
+}
+
+enum TicketPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  resolved
+  closed
+  cancelled
+}
+
+enum InspectionStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+enum InspectionResult {
+  pass
+  fail
+  needs_repair
+}
+
+enum NoticeKind {
+  maintenance
+  feature
+  announcement
+  security
+  event
+}
+
+enum ResourceCategory {
+  manual
+  form
+  guide
+  contract_template
+  marketing
+  other
+}
+
 // ─── User & Auth ──────────────────────────────────────────────────────
 
 model User {
@@ -84,6 +136,9 @@ model User {
   claimRequests       ClaimRequest[]           @relation("ClaimSubmitter")
   reviewedClaims      ClaimRequest[]           @relation("ClaimReviewer")
   notifyPreferences   NotificationPreference[]
+  reportedTickets     MaintenanceTicket[]      @relation("TicketReporter")
+  assignedTickets     MaintenanceTicket[]      @relation("TicketAssignee")
+  inspections         Inspection[]             @relation("InspectionInspector")
 
   @@index([businessNo])
   @@index([phone])
@@ -229,4 +284,90 @@ model NotificationPreference {
 
   @@unique([userId, channel, type])
   @@map("notification_preferences")
+}
+
+// ─── Maintenance ───────────────────────────────────────────────────────
+
+model MaintenanceTicket {
+  id              String          @id @default(uuid())
+  stationId       String          @map("station_id")
+  chargerId       String?         @map("charger_id")
+  title           String
+  description     String          @db.Text
+  category        TicketCategory  @default(fault)
+  priority        TicketPriority  @default(normal)
+  status          TicketStatus    @default(open)
+  reporterUserId  String          @map("reporter_user_id")
+  assigneeUserId  String?         @map("assignee_user_id")
+  resolution      String?         @db.Text
+  resolvedAt      DateTime?       @map("resolved_at")
+  closedAt        DateTime?       @map("closed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  reporter User  @relation("TicketReporter", fields: [reporterUserId], references: [id], onDelete: Restrict)
+  assignee User? @relation("TicketAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+
+  @@index([stationId, status])
+  @@index([status, priority, createdAt])
+  @@index([reporterUserId])
+  @@index([assigneeUserId])
+  @@map("maintenance_tickets")
+}
+
+model Inspection {
+  id               String             @id @default(uuid())
+  stationId        String             @map("station_id")
+  chargerId        String?            @map("charger_id")
+  inspectorUserId  String?            @map("inspector_user_id")
+  scheduledAt      DateTime           @map("scheduled_at")
+  performedAt      DateTime?          @map("performed_at")
+  status           InspectionStatus   @default(scheduled)
+  result           InspectionResult?
+  notes            String?            @db.Text
+  nextScheduledAt  DateTime?          @map("next_scheduled_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  inspector User? @relation("InspectionInspector", fields: [inspectorUserId], references: [id], onDelete: SetNull)
+
+  @@index([stationId, scheduledAt])
+  @@index([status, scheduledAt])
+  @@map("inspections")
+}
+
+// ─── Customer service ──────────────────────────────────────────────────
+
+model Notice {
+  id           String     @id @default(uuid())
+  kind         NoticeKind @default(announcement)
+  title        String
+  body         String?    @db.Text
+  publishedAt  DateTime   @default(now()) @map("published_at")
+  pinned       Boolean    @default(false)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@index([pinned, publishedAt])
+  @@index([kind, publishedAt])
+  @@map("notices")
+}
+
+model Resource {
+  id           String           @id @default(uuid())
+  category     ResourceCategory @default(other)
+  title        String
+  description  String?          @db.Text
+  fileKey      String?          @map("file_key")
+  fileName     String?          @map("file_name")
+  externalUrl  String?          @map("external_url")
+  publishedAt  DateTime         @default(now()) @map("published_at")
+  pinned       Boolean          @default(false)
+  downloadCount Int             @default(0) @map("download_count")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  @@index([category, publishedAt])
+  @@index([pinned, publishedAt])
+  @@map("resources")
 }
