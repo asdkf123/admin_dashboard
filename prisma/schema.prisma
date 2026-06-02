@@ -1,0 +1,232 @@
+// chargev-admin Prisma schema
+// 자세한 데이터 모델 설명은 docs/ERD.md 참조.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────
+
+enum SystemRole {
+  main_admin
+  normal_admin
+  partner_admin
+}
+
+enum ScopeRole {
+  owner
+  member
+  viewer
+}
+
+enum ClaimStatus {
+  pending
+  approved
+  rejected
+  info_required
+}
+
+enum NotifyChannel {
+  email
+  sms
+  kakao
+  inapp
+}
+
+enum NotifyType {
+  fault_alert
+  settlement
+  contract_expiry
+  inspection
+  approval_result
+  invite
+  announcement
+}
+
+// ─── User & Auth ──────────────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  name         String
+  phone        String
+  businessNo   String?    @map("business_no")
+  role         SystemRole
+
+  ci String?
+  di String?
+
+  emailVerifiedAt    DateTime? @map("email_verified_at")
+  phoneVerifiedAt    DateTime? @map("phone_verified_at")
+  lastLoginAt        DateTime? @map("last_login_at")
+  lockedUntil        DateTime? @map("locked_until")
+  failedLoginCount   Int       @default(0) @map("failed_login_count")
+  passwordChangedAt  DateTime  @default(now()) @map("password_changed_at")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  accounts            Account[]                @relation("UserAccounts")
+  invitedAccounts     Account[]                @relation("InvitedAccounts")
+  sessions            Session[]
+  twoFactor           TwoFactorAuth?
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]
+  usedInviteToken     InviteToken?             @relation("InviteUsedBy")
+  createdInviteTokens InviteToken[]            @relation("InviteCreatedBy")
+  claimRequests       ClaimRequest[]           @relation("ClaimSubmitter")
+  reviewedClaims      ClaimRequest[]           @relation("ClaimReviewer")
+  notifyPreferences   NotificationPreference[]
+
+  @@index([businessNo])
+  @@index([phone])
+  @@map("users")
+}
+
+model Account {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  stationId       String    @map("station_id")
+  scopeRole       ScopeRole @map("scope_role")
+  invitedByUserId String?   @map("invited_by_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user      User  @relation("UserAccounts", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User? @relation("InvitedAccounts", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, stationId])
+  @@index([stationId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  tokenHash    String    @unique @map("token_hash")
+  ipAddress    String    @map("ip_address")
+  userAgent    String    @map("user_agent")
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  lastActiveAt DateTime  @default(now()) @map("last_active_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model TwoFactorAuth {
+  id          String    @id @default(uuid())
+  userId      String    @unique @map("user_id")
+  secret      String // encrypted
+  backupCodes Json      @map("backup_codes") // hashed strings[]
+  verifiedAt  DateTime? @map("verified_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor_auth")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+// ─── Onboarding ───────────────────────────────────────────────────────
+
+model InviteToken {
+  id              String    @id @default(uuid())
+  tokenHash       String    @unique @map("token_hash")
+  businessNo      String    @map("business_no")
+  phone           String
+  email           String?
+  stationIds      Json      @map("station_ids") // string[]
+  expiresAt       DateTime  @map("expires_at")
+  usedAt          DateTime? @map("used_at")
+  usedByUserId    String?   @unique @map("used_by_user_id")
+  createdByUserId String    @map("created_by_user_id")
+  remindersSent   Int       @default(0) @map("reminders_sent")
+  lastReminderAt  DateTime? @map("last_reminder_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  usedBy    User? @relation("InviteUsedBy", fields: [usedByUserId], references: [id], onDelete: SetNull)
+  createdBy User  @relation("InviteCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([businessNo, phone])
+  @@index([expiresAt])
+  @@map("invite_tokens")
+}
+
+model ClaimRequest {
+  id               String      @id @default(uuid())
+  userId           String      @map("user_id")
+  stationId        String      @map("station_id")
+  businessNo       String      @map("business_no")
+  evidenceFileKeys Json        @map("evidence_file_keys") // string[]
+  status           ClaimStatus @default(pending)
+  reviewedByUserId String?     @map("reviewed_by_user_id")
+  reviewedAt       DateTime?   @map("reviewed_at")
+  reviewNote       String?     @map("review_note") @db.Text
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  user       User  @relation("ClaimSubmitter", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ClaimReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([stationId])
+  @@map("claim_requests")
+}
+
+// ─── Audit & Preferences ──────────────────────────────────────────────
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  before       Json?
+  after        Json?
+  ipAddress    String   @map("ip_address")
+  userAgent    String   @map("user_agent")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([resourceType, resourceId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+model NotificationPreference {
+  id        String        @id @default(uuid())
+  userId    String        @map("user_id")
+  channel   NotifyChannel
+  type      NotifyType
+  enabled   Boolean       @default(true)
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel, type])
+  @@map("notification_preferences")
+}
