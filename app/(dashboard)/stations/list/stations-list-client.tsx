@@ -20,9 +20,10 @@ const STATUS_FILTERS: Array<{ key: 'all' | StationStatus; label: string }> = [
 interface Props {
   stations: ChargingStation[]
   role: UserRole
+  canViewRevenue: boolean
 }
 
-export function StationsListClient({ stations, role }: Props) {
+export function StationsListClient({ stations, role, canViewRevenue }: Props) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | StationStatus>('all')
 
@@ -112,7 +113,11 @@ export function StationsListClient({ stations, role }: Props) {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((station) => (
-            <StationCard key={station.id} station={station} />
+            <StationCard
+              key={station.id}
+              station={station}
+              canViewRevenue={canViewRevenue}
+            />
           ))}
         </div>
       )}
@@ -147,7 +152,13 @@ function SummaryItem({
   )
 }
 
-function StationCard({ station }: { station: ChargingStation }) {
+function StationCard({
+  station,
+  canViewRevenue,
+}: {
+  station: ChargingStation
+  canViewRevenue: boolean
+}) {
   const uptimePct = station.uptime30d !== undefined ? Math.round(station.uptime30d * 1000) / 10 : null
 
   return (
@@ -192,14 +203,14 @@ function StationCard({ station }: { station: ChargingStation }) {
         )}
       </div>
 
-      {station.monthlyRevenue !== undefined && station.monthlyRevenue > 0 && (
+      {canViewRevenue && station.monthlyRevenue !== undefined && station.monthlyRevenue > 0 && (
         <p className="mt-3 text-xs text-muted-foreground">
           이번달 매출{' '}
           <span className="font-semibold tabular-nums text-foreground">
             {station.monthlyRevenue.toLocaleString()}원
           </span>
           {station.monthlyUsageCount !== undefined && (
-            <span> · 충전 {station.monthlyUsageCount.toLocaleString()}건</span>
+            <span> / 충전 {station.monthlyUsageCount.toLocaleString()}건</span>
           )}
         </p>
       )}

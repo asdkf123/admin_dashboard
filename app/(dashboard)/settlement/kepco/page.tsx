@@ -78,7 +78,7 @@ export default function KepcoPaymentPage() {
         </div>
 
         {/* 요약 카드 */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div data-annotate="kepco-summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <DotSummary label="납부완료" value={`${summary.completed}건`} tone="success" />
           <DotSummary label="납부대기" value={`${summary.pending}건`} tone="warning" />
           <DotSummary label="미납" value={`${summary.unpaid}건`} tone="danger" />
@@ -86,7 +86,7 @@ export default function KepcoPaymentPage() {
         </div>
 
         {/* 테이블 */}
-        <Card className="shadow-sm">
+        <Card data-annotate="kepco-table" className="shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">
               {selectedPeriod} 충전소별 전기요금 납부 현황

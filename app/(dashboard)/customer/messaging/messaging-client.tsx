@@ -141,7 +141,7 @@ export function MessagingClient({ audienceCounts, recent }: Props) {
             )}
 
             {/* 수신자 */}
-            <div>
+            <div data-annotate="audience">
               <label className="mb-2 block text-sm font-medium">수신자</label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <AudienceOption
@@ -157,7 +157,7 @@ export function MessagingClient({ audienceCounts, recent }: Props) {
                   onClick={() => setAudience('main_admin')}
                 />
                 <AudienceOption
-                  label="일반 직원"
+                  label="상면관리자"
                   count={audienceCounts.normal_admin}
                   checked={audience === 'normal_admin'}
                   onClick={() => setAudience('normal_admin')}
@@ -186,7 +186,7 @@ export function MessagingClient({ audienceCounts, recent }: Props) {
             </div>
 
             {/* 채널 */}
-            <div>
+            <div data-annotate="channels">
               <label className="mb-2 block text-sm font-medium">발송 채널 (중복 선택)</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <ChannelOption
@@ -211,7 +211,7 @@ export function MessagingClient({ audienceCounts, recent }: Props) {
             </div>
 
             {/* 제목 + 본문 */}
-            <div>
+            <div data-annotate="message-body">
               <label className="mb-1.5 block text-sm font-medium">제목</label>
               <input
                 value={subject}
@@ -320,7 +320,7 @@ function roleLabel(r: string): string {
   return {
     all: '전체',
     main_admin: '본사 운영팀',
-    normal_admin: '일반 직원',
+    normal_admin: '상면관리자',
     partner_admin: '파트너',
   }[r] ?? r
 }

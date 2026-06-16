@@ -102,7 +102,7 @@ export function InspectionClient({ inspections, stations, stationMap, staffList,
   return (
     <div className="space-y-4">
       {/* 요약 */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div data-annotate="status-counter" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi icon={CalendarPlus} label="예정" count={counts.scheduled} tone="info" />
         <Kpi icon={Wrench} label="진행중" count={counts.in_progress} tone="warning" />
         <Kpi icon={CheckCircle2} label="완료" count={counts.completed} tone="success" />
@@ -128,7 +128,7 @@ export function InspectionClient({ inspections, stations, stationMap, staffList,
                     <p className="font-medium">{stationMap[i.stationId]?.name ?? i.stationId}</p>
                     {i.notes && <p className="line-clamp-1 text-xs text-muted-foreground">{i.notes}</p>}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground" suppressHydrationWarning>
                     {new Date(i.scheduledAt).toLocaleString('ko-KR', {
                       month: '2-digit',
                       day: '2-digit',
@@ -170,11 +170,11 @@ export function InspectionClient({ inspections, stations, stationMap, staffList,
       </div>
 
       {/* 테이블 */}
-      <Card className="shadow-sm">
+      <Card data-annotate="inspection-table" className="shadow-sm">
         <CardContent className="p-0">
           {filtered.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
-              점검 이력이 없습니다.
+              정기정검 이력이 없습니다.
             </p>
           ) : (
             <Table>
@@ -196,7 +196,7 @@ export function InspectionClient({ inspections, stations, stationMap, staffList,
                     className="cursor-pointer hover:bg-muted/30"
                     onClick={() => setSelected(i)}
                   >
-                    <TableCell className="text-xs">
+                    <TableCell className="text-xs" suppressHydrationWarning>
                       {new Date(i.scheduledAt).toLocaleString('ko-KR', {
                         year: 'numeric',
                         month: '2-digit',
@@ -481,7 +481,7 @@ function DetailModal({
             <h3 className="text-base font-semibold">
               {station?.name ?? inspection.stationId} 점검
             </h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground" suppressHydrationWarning>
               예정 {new Date(inspection.scheduledAt).toLocaleString('ko-KR')}
               {inspection.chargerId && ` · ${inspection.chargerId}`}
             </p>
@@ -573,13 +573,37 @@ function DetailModal({
         </Field>
       </div>
 
-      <div className="flex justify-end gap-2 border-t p-4">
-        <Button variant="outline" onClick={onClose}>닫기</Button>
-        {!readOnly && (
-          <Button onClick={submit} disabled={loading}>
-            {loading ? '저장 중...' : '저장'}
-          </Button>
-        )}
+      <div className="flex items-center justify-between gap-2 border-t p-4">
+        <Button
+          variant="outline"
+          disabled={inspection.status !== 'completed'}
+          onClick={() => {
+            const blob = new Blob(
+              [
+                `정기 점검 내역서\n\n점검 ID: ${inspection.id}\n점검 일자: ${inspection.performedAt ?? inspection.scheduledAt}\n충전소: ${station?.name ?? inspection.stationId}\n담당자: ${inspection.inspector?.name ?? '-'}\n결과: ${inspection.result ?? '-'}\n메모: ${inspection.notes ?? '-'}\n`,
+              ],
+              { type: 'text/plain;charset=utf-8' },
+            )
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `inspection-${inspection.id}.txt`
+            a.click()
+            URL.revokeObjectURL(url)
+          }}
+          title={inspection.status !== 'completed' ? '점검 완료 후 다운로드 가능' : '점검 내역서 다운로드'}
+          className="gap-1"
+        >
+          내역서 다운로드
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose}>닫기</Button>
+          {!readOnly && (
+            <Button onClick={submit} disabled={loading}>
+              {loading ? '저장 중...' : '저장'}
+            </Button>
+          )}
+        </div>
       </div>
     </Modal>
   )

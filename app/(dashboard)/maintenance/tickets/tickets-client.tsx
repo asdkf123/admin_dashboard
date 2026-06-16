@@ -115,7 +115,7 @@ export function TicketsClient({ tickets, stations, stationMap, staffList, role, 
   return (
     <div className="space-y-4">
       {/* 요약 */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div data-annotate="status-counter" className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Kpi icon={AlertCircle} label="접수완료" count={counts.open} tone="info" />
         <Kpi icon={Wrench} label="수리중" count={counts.in_progress} tone="warning" />
         <Kpi icon={CheckCircle2} label="처리완료" count={counts.resolved} tone="success" />
@@ -160,7 +160,7 @@ export function TicketsClient({ tickets, stations, stationMap, staffList, role, 
       </div>
 
       {/* 테이블 */}
-      <Card className="shadow-sm">
+      <Card data-annotate="tickets-table" className="shadow-sm">
         <CardContent className="p-0">
           {filtered.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
@@ -187,7 +187,7 @@ export function TicketsClient({ tickets, stations, stationMap, staffList, role, 
                     className="cursor-pointer hover:bg-muted/30"
                     onClick={() => setSelected(t)}
                   >
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground" suppressHydrationWarning>
                       {new Date(t.createdAt).toLocaleString('ko-KR', {
                         month: '2-digit',
                         day: '2-digit',
@@ -480,10 +480,10 @@ function DetailModal({
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-base font-semibold">{ticket.title}</h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground" suppressHydrationWarning>
               {station?.name ?? ticket.stationId}
-              {ticket.chargerId && ` · ${ticket.chargerId}`}
-              {' · '}
+              {ticket.chargerId && ` / ${ticket.chargerId}`}
+              {' / '}
               {new Date(ticket.createdAt).toLocaleString('ko-KR')}
             </p>
           </div>

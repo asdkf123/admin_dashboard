@@ -37,7 +37,7 @@ const stationStatusSummary: Array<{ label: string; count: number; tone: StatusTo
   { label: '정상', count: 128, tone: 'success' },
   { label: '고장', count: 8, tone: 'danger' },
   { label: '점검중', count: 6, tone: 'warning' },
-  { label: '미연결', count: 0, tone: 'neutral' },
+  { label: '통신장애', count: 0, tone: 'neutral' },
 ]
 
 export default function DashboardPage() {
@@ -47,19 +47,23 @@ export default function DashboardPage() {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div data-annotate="kpi" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {kpiCards.map((card) => (
-            <KpiCard
+            <div
               key={card.title}
-              title={card.title}
-              value={card.value}
-              unit={card.unit}
-              change={card.change}
-              changeTone={card.changeTone}
-              description={card.description}
-              icon={card.icon}
-              tone={card.tone}
-            />
+              data-annotate={card.title === '금월 충전량' ? 'monthly-usage' : undefined}
+            >
+              <KpiCard
+                title={card.title}
+                value={card.value}
+                unit={card.unit}
+                change={card.change}
+                changeTone={card.changeTone}
+                description={card.description}
+                icon={card.icon}
+                tone={card.tone}
+              />
+            </div>
           ))}
         </div>
 

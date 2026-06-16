@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { Header } from '@/components/layout/header'
 import { getCurrentUser } from '@/lib/auth/server'
+import { hasPermission } from '@/lib/permissions'
 import { getVisibleStations } from '@/lib/stations/visible'
 import { StationsListClient } from './stations-list-client'
 
@@ -8,13 +9,20 @@ export default async function StationListPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const stations = await getVisibleStations(user)
+  const [stations, canViewRevenue] = await Promise.all([
+    getVisibleStations(user),
+    hasPermission(user, 'view:revenue'),
+  ])
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <Header title="충전소 리스트" />
       <div className="flex-1 overflow-y-auto p-6">
-        <StationsListClient stations={stations} role={user.role} />
+        <StationsListClient
+          stations={stations}
+          role={user.role}
+          canViewRevenue={canViewRevenue}
+        />
       </div>
     </div>
   )

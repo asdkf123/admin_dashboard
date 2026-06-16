@@ -21,6 +21,14 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
 }
 
+/**
+ * 보고용 화면 미리보기 — `?previewAs=site_owner|oem|operator|clear` 쿼리가 오면
+ * 짧은 쿠키로 변환. getCurrentUser가 이 쿠키를 보고 role을 override함.
+ * 보안: 원래 main_admin인 사용자만 override 적용 (getCurrentUser에서 체크).
+ */
+const PREVIEW_COOKIE = '__preview_as'
+const PREVIEW_VALUES = new Set(['site_owner', 'oem', 'operator', 'clear'])
+
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
   const hasSessionCookie = req.cookies.has(SESSION_COOKIE_NAME)
@@ -45,7 +53,23 @@ export function proxy(req: NextRequest) {
   // (server component에서 next/headers로 읽을 수 있음)
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-pathname', pathname)
-  return NextResponse.next({ request: { headers: requestHeaders } })
+  const res = NextResponse.next({ request: { headers: requestHeaders } })
+
+  // previewAs 쿼리 → 쿠키
+  const previewAs = req.nextUrl.searchParams.get('previewAs')
+  if (previewAs && PREVIEW_VALUES.has(previewAs)) {
+    if (previewAs === 'clear') {
+      res.cookies.delete(PREVIEW_COOKIE)
+    } else {
+      res.cookies.set(PREVIEW_COOKIE, previewAs, {
+        path: '/',
+        maxAge: 300,
+        sameSite: 'lax',
+      })
+    }
+  }
+
+  return res
 }
 
 export const config = {

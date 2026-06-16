@@ -5,6 +5,9 @@ import type { User } from '@prisma/client'
 /**
  * 서버 컴포넌트 / API 라우트에서 현재 사용자 조회.
  * 세션 없거나 만료되면 null.
+ *
+ * Preview override — 원래 main_admin인 사용자가 `__preview_as` 쿠키를 가지면
+ * 보고용 화면 미리보기 목적으로 role을 일시 변경. 다른 사용자에겐 영향 없음.
  */
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies()
@@ -12,7 +15,16 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!token) return null
 
   const result = await verifySession(token)
-  return result?.user ?? null
+  const user = result?.user ?? null
+  if (!user) return null
+
+  if (user.role === 'main_admin') {
+    const preview = cookieStore.get('__preview_as')?.value
+    if (preview === 'site_owner' || preview === 'oem') {
+      return { ...user, role: 'partner_admin' }
+    }
+  }
+  return user
 }
 
 /**
