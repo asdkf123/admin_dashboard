@@ -6,46 +6,33 @@ export const navItems: NavItem[] = [
     href: '/dashboard',
     icon: 'layout-dashboard',
     roles: ['main_admin', 'normal_admin', 'partner_admin'],
+    requiredPermissions: ['view:dashboard'],
   },
   {
-    title: '충전소 관리',
-    icon: 'building',
-    roles: ['main_admin', 'normal_admin', 'partner_admin'],
-    children: [
-      { title: '충전소그룹 관리', href: '/stations/groups' },
-      { title: '충전소 리스트', href: '/stations/list' },
-    ],
-  },
-  {
-    title: '계정 관리',
-    icon: 'users',
-    roles: ['main_admin'],
-    children: [
-      { title: '신규 계정 등록', href: '/accounts/new' },
-      { title: '계정별 권한 관리', href: '/accounts/permissions' },
-      { title: '충전소별 계정 관리', href: '/accounts/stations' },
-      { title: '감사 로그', href: '/accounts/audit-log' },
-    ],
-  },
-  {
-    title: '충전소 정보',
+    title: '충전소/충전기',
     icon: 'zap',
     roles: ['main_admin', 'normal_admin', 'partner_admin'],
     children: [
-      { title: '충전소 정보', href: '/station-info/info' },
-      { title: '충전기 현황', href: '/station-info/chargers' },
-      { title: '실시간 상태', href: '/station-info/realtime' },
-      { title: '충전 이력', href: '/station-info/history' },
-    ],
-  },
-  {
-    title: '정산 관리',
-    icon: 'calculator',
-    roles: ['main_admin', 'partner_admin'],
-    children: [
-      { title: '정산 그룹 관리', href: '/settlement/info', roles: ['main_admin'] },
-      { title: '정산 이력', href: '/settlement/history' },
-      { title: '한전 납부 이력', href: '/settlement/kepco' },
+      {
+        title: '충전소 그룹',
+        href: '/stations/groups',
+        requiredPermissions: ['manage:stations'],
+      },
+      {
+        title: '충전소 리스트',
+        href: '/stations/list',
+        requiredPermissions: ['view:stations'],
+      },
+      {
+        title: '충전기',
+        href: '/station-info/chargers',
+        requiredPermissions: ['view:stations'],
+      },
+      {
+        title: '충전 이력',
+        href: '/station-info/history',
+        requiredPermissions: ['view:stations'],
+      },
     ],
   },
   {
@@ -53,18 +40,92 @@ export const navItems: NavItem[] = [
     icon: 'wrench',
     roles: ['main_admin', 'normal_admin', 'partner_admin'],
     children: [
-      { title: '접수/처리 이력', href: '/maintenance/tickets' },
-      { title: '점검 이력', href: '/maintenance/inspection' },
+      {
+        title: '접수/처리 이력',
+        href: '/maintenance/tickets',
+        requiredPermissions: ['manage:tickets'],
+      },
+      {
+        title: '정기정검 이력',
+        href: '/maintenance/inspection',
+        requiredPermissions: ['manage:inspections'],
+      },
+    ],
+  },
+  {
+    title: '정산',
+    icon: 'calculator',
+    roles: ['main_admin', 'partner_admin'],
+    children: [
+      {
+        title: '정산 그룹',
+        href: '/settlement/info',
+        roles: ['main_admin'],
+        requiredPermissions: ['manage:stations'],
+      },
+      {
+        title: '정산 이력',
+        href: '/settlement/history',
+        requiredPermissions: ['view:settlement'],
+      },
+      {
+        title: '한전 납부 이력',
+        href: '/settlement/kepco',
+      },
     ],
   },
   {
     title: '고객센터',
     icon: 'headphones',
+    roles: ['main_admin', 'normal_admin', 'partner_admin'],
+    children: [
+      {
+        title: '공지사항',
+        href: '/customer/notices',
+        requiredPermissions: ['view:notices'],
+      },
+      {
+        title: '자료게시판',
+        href: '/customer/board',
+        requiredPermissions: ['view:notices'],
+      },
+    ],
+  },
+  {
+    title: '운영',
+    icon: 'settings',
     roles: ['main_admin'],
     children: [
-      { title: '공지사항', href: '/customer/notices' },
-      { title: '자료게시판', href: '/customer/board' },
-      { title: '메일,문자 발송', href: '/customer/messaging' },
+      {
+        title: '신규 계정 등록',
+        href: '/accounts/new',
+        requiredPermissions: ['manage:accounts'],
+      },
+      {
+        title: '계정별 권한 관리',
+        href: '/accounts/permissions',
+        requiredPermissions: ['manage:accounts'],
+      },
+      {
+        title: '충전소별 계정 관리',
+        href: '/accounts/stations',
+        requiredPermissions: ['manage:accounts'],
+      },
+      {
+        title: '메일,문자 발송',
+        href: '/customer/messaging',
+        requiredPermissions: ['notify:broadcast'],
+      },
+      {
+        title: '감사 로그',
+        href: '/accounts/audit-log',
+        requiredPermissions: ['view:audit_log'],
+      },
+      {
+        title: '내부 보고',
+        href: '/report',
+        requiredPermissions: ['view:audit_log'],
+      },
     ],
   },
   // Beta(AI 챗봇, AI 리포트)는 임시 비활성화. 활성화 시 아래 주석 해제.

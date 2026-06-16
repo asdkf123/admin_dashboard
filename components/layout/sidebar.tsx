@@ -17,11 +17,13 @@ import {
   Wrench,
   Headphones,
   FlaskConical,
+  FileText,
+  Settings,
 } from 'lucide-react'
 
 const ROLE_LABEL: Record<UserRole, string> = {
   main_admin: '본사 운영팀',
-  normal_admin: '일반 직원',
+  normal_admin: '상면관리자',
   partner_admin: '파트너',
 }
 
@@ -34,6 +36,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   wrench: Wrench,
   headphones: Headphones,
   'flask-conical': FlaskConical,
+  'file-text': FileText,
+  settings: Settings,
 }
 
 interface SidebarUser {
@@ -45,10 +49,13 @@ interface SidebarUser {
 
 interface SidebarProps {
   user: SidebarUser
+  /** server에서 미리 계산된 effective permissions (role 기본 + 추가 grant) */
+  permissions: string[]
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, permissions }: SidebarProps) {
   const userRole = user.role
+  const permissionSet = new Set(permissions)
   const router = useRouter()
   const pathname = usePathname()
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set(['대시보드']))
@@ -77,9 +84,22 @@ export function Sidebar({ user }: SidebarProps) {
     })
   }
 
-  const filteredItems = navItems.filter((item) =>
-    item.roles.includes(userRole)
-  )
+  const hasAllPermissions = (required?: string[]) =>
+    !required || required.length === 0 || required.every((p) => permissionSet.has(p))
+
+  const filteredItems = navItems
+    .filter((item) => item.roles.includes(userRole) && hasAllPermissions(item.requiredPermissions))
+    .map((item) => {
+      if (!item.children) return item
+      const visibleChildren = item.children.filter((child) => {
+        if (child.roles && !child.roles.includes(userRole)) return false
+        return hasAllPermissions(child.requiredPermissions)
+      })
+      // 자식이 모두 hidden이면 부모도 숨김
+      if (visibleChildren.length === 0) return null
+      return { ...item, children: visibleChildren }
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
 
   return (
     <aside className="flex h-screen w-60 flex-col bg-sidebar text-sidebar-foreground">
@@ -147,9 +167,7 @@ export function Sidebar({ user }: SidebarProps) {
 
               {isOpen && item.children && (
                 <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-3">
-                  {item.children
-                    .filter((child) => !child.roles || child.roles.includes(userRole))
-                    .map((child) => {
+                  {item.children.map((child) => {
                       const isChildActive = pathname === child.href
                       return (
                         <Link
@@ -168,6 +186,7 @@ export function Sidebar({ user }: SidebarProps) {
                     })}
                 </div>
               )}
+              {/* end children */}
             </div>
           )
         })}

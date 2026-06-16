@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { cn } from '@/lib/utils'
@@ -88,6 +87,26 @@ export function RealtimeClient({ stations, initialStationFilter }: Props) {
     return byStatus
   }, [data])
 
+  // 충전소 단위로 그룹핑 — 충전소 1개 현장은 섹션 1개만 자연스럽게 표시
+  const groups = useMemo(() => {
+    if (!data) return []
+    const order: string[] = []
+    const map = new Map<
+      string,
+      { station: { id: string; name: string; address: string }; chargers: Charger[] }
+    >()
+    for (const c of data.chargers) {
+      const station = data.stations[c.stationId]
+      if (!station) continue
+      if (!map.has(c.stationId)) {
+        order.push(c.stationId)
+        map.set(c.stationId, { station, chargers: [] })
+      }
+      map.get(c.stationId)!.chargers.push(c)
+    }
+    return order.map((id) => map.get(id)!)
+  }, [data])
+
   return (
     <div className="space-y-4">
       {/* 상단: 필터 + 라이브 인디케이터 */}
@@ -129,7 +148,7 @@ export function RealtimeClient({ stations, initialStationFilter }: Props) {
       )}
 
       {/* KPI */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div data-annotate="kpi" className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Kpi
           icon={Zap}
           label="충전중"
@@ -140,31 +159,91 @@ export function RealtimeClient({ stations, initialStationFilter }: Props) {
         <Kpi icon={Activity} label="대기" count={counts.normal} tone="success" />
         <Kpi icon={Activity} label="점검중" count={counts.maintenance} tone="warning" />
         <Kpi icon={AlertCircle} label="고장" count={counts.fault} tone="danger" />
-        <Kpi icon={Activity} label="미연결" count={counts.offline} tone="muted" />
+        <Kpi icon={Activity} label="통신장애" count={counts.offline} tone="muted" />
       </div>
 
-      {/* 충전기 그리드 */}
+      {/* 충전소 섹션 그룹 */}
       {loading && !data ? (
         <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-foreground">
           <RefreshCw className="h-4 w-4 animate-spin" />
           데이터 불러오는 중...
         </div>
-      ) : data && data.chargers.length === 0 ? (
+      ) : !data || data.chargers.length === 0 ? (
         <div className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground">
           충전기가 없습니다.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {data?.chargers.map((c) => (
-            <ChargerCard
-              key={c.id}
-              charger={c}
-              stationName={data.stations[c.stationId]?.name ?? c.stationId}
-            />
+        <div data-annotate="stations" className="space-y-4">
+          {groups.map((g) => (
+            <StationSection key={g.station.id} station={g.station} chargers={g.chargers} />
           ))}
         </div>
       )}
     </div>
+  )
+}
+
+function StationSection({
+  station,
+  chargers,
+}: {
+  station: { id: string; name: string; address: string }
+  chargers: Charger[]
+}) {
+  const c = chargers.reduce(
+    (acc, ch) => {
+      acc[ch.status]++
+      return acc
+    },
+    { normal: 0, charging: 0, maintenance: 0, fault: 0, offline: 0 } as Record<ChargerStatus, number>,
+  )
+  return (
+    <section className="overflow-hidden rounded-lg border bg-card">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold tracking-tight">{station.name}</h3>
+          <p className="font-mono text-xs text-muted-foreground">
+            {station.id} {station.address ? `/ ${station.address}` : ''}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-xs text-muted-foreground">총 {chargers.length}대</span>
+          {c.charging > 0 && <MiniPill label="충전중" count={c.charging} tone="info" />}
+          {c.fault > 0 && <MiniPill label="고장" count={c.fault} tone="danger" />}
+          {c.maintenance > 0 && <MiniPill label="점검중" count={c.maintenance} tone="warning" />}
+          {c.normal > 0 && <MiniPill label="대기" count={c.normal} tone="success" />}
+          {c.offline > 0 && <MiniPill label="통신장애" count={c.offline} tone="muted" />}
+        </div>
+      </header>
+      <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+        {chargers.map((ch) => (
+          <ChargerCard key={ch.id} charger={ch} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function MiniPill({
+  label,
+  count,
+  tone,
+}: {
+  label: string
+  count: number
+  tone: 'success' | 'warning' | 'danger' | 'info' | 'muted'
+}) {
+  const cls = {
+    info: 'bg-info-soft text-info-soft-foreground',
+    danger: 'bg-danger-soft text-danger-soft-foreground',
+    warning: 'bg-warning-soft text-warning-soft-foreground',
+    success: 'bg-success-soft text-success-soft-foreground',
+    muted: 'bg-muted text-muted-foreground',
+  }[tone]
+  return (
+    <span className={cn('rounded px-2 py-0.5 text-[11px] font-medium tabular-nums', cls)}>
+      {label} {count}
+    </span>
   )
 }
 
@@ -206,7 +285,7 @@ function Kpi({
   )
 }
 
-function ChargerCard({ charger, stationName }: { charger: Charger; stationName: string }) {
+function ChargerCard({ charger }: { charger: Charger }) {
   const session = charger.currentSession
 
   return (
@@ -214,13 +293,7 @@ function ChargerCard({ charger, stationName }: { charger: Charger; stationName: 
       <CardContent className="space-y-3 py-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <Link
-              href={`/station-info/info?id=${charger.stationId}`}
-              className="text-sm font-medium hover:text-primary"
-            >
-              {stationName}
-            </Link>
-            <p className="font-mono text-xs text-muted-foreground">{charger.id}</p>
+            <p className="font-mono text-sm font-medium">{charger.id}</p>
           </div>
           <StatusBadge
             status={CHARGER_STATUS_LABEL[charger.status]}

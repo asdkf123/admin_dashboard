@@ -19,7 +19,7 @@ export default async function ChargersPage({ searchParams }: PageProps) {
   if (visibleStations.length === 0) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header title="충전기 현황" />
+        <Header title="충전기" />
         <div className="flex flex-1 items-center justify-center p-6">
           <p className="text-sm text-muted-foreground">접근 가능한 충전소가 없습니다.</p>
         </div>
@@ -37,7 +37,7 @@ export default async function ChargersPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <Header title="충전기 현황" />
+      <Header title="충전기" />
       <div className="flex-1 overflow-y-auto p-6">
         <ChargersClient
           chargers={chargers}
