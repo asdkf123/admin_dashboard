@@ -143,7 +143,7 @@ export function NewAccountForm({ stations }: Props) {
               className={inputCls}
             >
               <option value="partner_admin">파트너 (충전소 소유주)</option>
-              <option value="normal_admin">일반 직원</option>
+              <option value="normal_admin">상면관리자</option>
               <option value="main_admin">본사 운영팀</option>
             </select>
           </Field>

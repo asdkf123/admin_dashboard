@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { Header } from '@/components/layout/header'
-import { Card, CardContent } from '@/components/ui/card'
+import { ForbiddenCard } from '@/components/layout/forbidden-card'
 import { getCurrentUser } from '@/lib/auth/server'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/adapters/db'
 import { stationAdapter } from '@/lib/adapters/station'
 import { AccountsStationsClient } from './accounts-stations-client'
@@ -9,19 +10,8 @@ import { AccountsStationsClient } from './accounts-stations-client'
 export default async function AccountsStationsPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
-  if (user.role !== 'main_admin') {
-    return (
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header title="충전소별 계정 관리" />
-        <div className="flex flex-1 items-center justify-center p-6">
-          <Card className="w-full max-w-sm shadow-sm">
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              본사 운영팀(main_admin) 권한이 필요합니다.
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+  if (!(await hasPermission(user, 'manage:accounts'))) {
+    return <ForbiddenCard title="충전소별 계정 관리" permission="manage:accounts" />
   }
 
   const [stationsRes, accounts, partners] = await Promise.all([

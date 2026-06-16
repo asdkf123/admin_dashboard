@@ -158,7 +158,7 @@ export default async function StationInfoPage({ searchParams }: PageProps) {
                 <StatusTile label="충전중" count={chargerCounts.charging} tone="info" />
                 <StatusTile label="점검중" count={chargerCounts.maintenance} tone="warning" />
                 <StatusTile label="고장" count={chargerCounts.fault} tone="danger" />
-                <StatusTile label="미연결" count={chargerCounts.offline} tone="muted" />
+                <StatusTile label="통신장애" count={chargerCounts.offline} tone="muted" />
               </div>
             </CardContent>
           </Card>

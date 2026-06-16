@@ -49,7 +49,7 @@ export default async function InspectionPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <Header title="점검 이력" />
+      <Header title="정기정검 이력" />
       <div className="flex-1 overflow-y-auto p-6">
         <InspectionClient
           inspections={dto}

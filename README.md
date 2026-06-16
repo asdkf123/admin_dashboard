@@ -109,7 +109,7 @@ npm run dev
 | 역할 | 이메일 | 비밀번호 | 비고 |
 |---|---|---|---|
 | 본사 운영팀 (`main_admin`) | `admin@chargev.local` | `Admin1234!@` | 전체 권한 |
-| 일반 직원 (`normal_admin`) | `staff@chargev.local` | `Staff1234!@` | 모니터링/CS |
+| 상면관리자 (`normal_admin`) | `staff@chargev.local` | `Staff1234!@` | 모니터링/CS |
 | 파트너 (`partner_admin`) | `partner@example.com` | `Partner1234!@` | CS001, CS128 owner |
 | 테스트 | `test@test.com` | `Test1234!@` | main_admin |
 | 테스트 | `qq@qq.q` | `qwe123!@#` | main_admin |

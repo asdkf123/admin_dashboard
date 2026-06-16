@@ -1,9 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { HeaderUserMenu } from './header-user-menu'
 import type { UserRole } from '@/types/navigation'
 
@@ -39,17 +36,10 @@ export function Header({ title }: HeaderProps) {
   }, [])
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6">
+    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
       <h1 className="text-base font-semibold text-foreground">{title}</h1>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative h-8 w-8">
-          <Bell className="h-4 w-4" />
-          <Badge className="absolute -right-0.5 -top-0.5 h-4 w-4 items-center justify-center p-0 text-[10px]">
-            3
-          </Badge>
-        </Button>
-
         {user && <HeaderUserMenu user={user} />}
       </div>
     </header>

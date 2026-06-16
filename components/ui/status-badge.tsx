@@ -42,7 +42,7 @@ export const STATUS_TONE: Record<string, StatusTone> = {
   발송중: 'info',
 
   // neutral (default)
-  미연결: 'neutral',
+  통신장애: 'neutral',
 }
 
 const statusBadgeVariants = cva(

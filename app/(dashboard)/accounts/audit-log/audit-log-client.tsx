@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -57,6 +57,7 @@ interface LogDto {
   before: unknown
   after: unknown
   createdAt: string
+  createdAtFormatted: string
 }
 
 interface Props {
@@ -206,9 +207,8 @@ export function AuditLogClient({
                   const isExpanded = expanded.has(log.id)
                   const hasDetails = log.before !== null || log.after !== null
                   return (
-                    <>
+                    <Fragment key={log.id}>
                       <TableRow
-                        key={log.id}
                         className={cn(
                           hasDetails && 'cursor-pointer hover:bg-muted/30',
                         )}
@@ -224,7 +224,7 @@ export function AuditLogClient({
                           ) : null}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {new Date(log.createdAt).toLocaleString('ko-KR')}
+                          {log.createdAtFormatted}
                         </TableCell>
                         <TableCell>
                           <ActionBadge action={log.action} />
@@ -250,14 +250,14 @@ export function AuditLogClient({
                         </TableCell>
                       </TableRow>
                       {isExpanded && (
-                        <TableRow key={`${log.id}-detail`}>
+                        <TableRow>
                           <TableCell />
                           <TableCell colSpan={5} className="bg-muted/20 py-3">
                             <DetailView log={log} />
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   )
                 })}
               </TableBody>

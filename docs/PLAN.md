@@ -98,7 +98,7 @@ interface AuthAdapter {
 | Role | 누구 | 권한 범위 |
 |---|---|---|
 | `main_admin` | GS차지비 본사 운영팀 | 모든 데이터·계정·시스템 설정 |
-| `normal_admin` | GS차지비 일반 직원 | 모니터링·CS·점검 (정산·계정 ❌) |
+| `normal_admin` | GS차지비 상면관리자 | 모니터링·CS·점검 (정산·계정 ❌) |
 | `partner_admin` | 충전소 소유주 | **본인 소유 충전소만** (row-level scope) |
 
 **충전소 단위 N:M 권한** (`partner_admin` 내부에서 다시 세분):
@@ -282,7 +282,7 @@ PasswordPolicy  (system-wide settings)
 | 점검중 / 수리중 / 납부대기 / 만료임박 | warning | --warning |
 | 고장 / 미납 / 발송실패 / 만료 | danger | --danger |
 | 접수완료 / 진행중 | info | --info |
-| 미연결 / 비활성 / 기타 | neutral | --muted |
+| 통신장애 / 비활성 / 기타 | neutral | --muted |
 
 ---
 

@@ -117,7 +117,7 @@ npm run dev
 | 역할 | 이메일 | 비밀번호 |
 |---|---|---|
 | 본사 운영팀 (`main_admin`) | `admin@chargev.local` | `Admin1234!@` |
-| 일반 직원 (`normal_admin`) | `staff@chargev.local` | `Staff1234!@` |
+| 상면관리자 (`normal_admin`) | `staff@chargev.local` | `Staff1234!@` |
 | 파트너 (`partner_admin`) | `partner@example.com` | `Partner1234!@` |
 | 테스트 | `test@test.com` | `Test1234!@` |
 | 테스트 | `qq@qq.q` | `qwe123!@#` |

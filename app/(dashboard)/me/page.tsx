@@ -9,7 +9,7 @@ import type { UserRole } from '@/types/navigation'
 
 const ROLE_LABEL: Record<UserRole, string> = {
   main_admin: '본사 운영팀',
-  normal_admin: '일반 직원',
+  normal_admin: '상면관리자',
   partner_admin: '파트너',
 }
 
