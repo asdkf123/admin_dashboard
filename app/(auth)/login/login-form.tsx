@@ -138,7 +138,7 @@ function LoginFormInner() {
             </Button>
           </div>
 
-          <Divider />
+          {/* <Divider /> */}
 
           {/* <Button variant="outline" className="h-11 w-full justify-center" disabled>
             SSO로 계속하기 (준비 중)
