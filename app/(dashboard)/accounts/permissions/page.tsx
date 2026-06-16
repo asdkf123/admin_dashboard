@@ -1,26 +1,16 @@
 import { redirect } from 'next/navigation'
 import { Header } from '@/components/layout/header'
-import { Card, CardContent } from '@/components/ui/card'
+import { ForbiddenCard } from '@/components/layout/forbidden-card'
 import { getCurrentUser } from '@/lib/auth/server'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/adapters/db'
 import { AccountsPermissionsClient } from './accounts-permissions-client'
 
 export default async function PermissionsPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
-  if (user.role !== 'main_admin') {
-    return (
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header title="계정별 권한 관리" />
-        <div className="flex flex-1 items-center justify-center p-6">
-          <Card className="w-full max-w-sm shadow-sm">
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              본사 운영팀(main_admin) 권한이 필요합니다.
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+  if (!(await hasPermission(user, 'manage:accounts'))) {
+    return <ForbiddenCard title="계정별 권한 관리" permission="manage:accounts" />
   }
 
   const users = await prisma.user.findMany({
@@ -32,6 +22,7 @@ export default async function PermissionsPage() {
           sessions: { where: { revokedAt: null, expiresAt: { gt: new Date() } } },
         },
       },
+      extraPermissions: { select: { permission: true } },
     },
   })
 
@@ -49,6 +40,7 @@ export default async function PermissionsPage() {
     failedLoginCount: u.failedLoginCount,
     accountCount: u._count.accounts,
     activeSessionCount: u._count.sessions,
+    extraPermissions: u.extraPermissions.map((p) => p.permission),
   }))
 
   return (

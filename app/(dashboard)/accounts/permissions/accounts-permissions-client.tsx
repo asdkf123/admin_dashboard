@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Lock, Unlock, LogOut, KeyRound, AlertCircle } from 'lucide-react'
+import { Search, Lock, Unlock, LogOut, KeyRound, AlertCircle, Shield } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
@@ -16,17 +16,24 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/types/navigation'
+import {
+  ALL_PERMISSIONS,
+  PERMISSION_LABEL,
+  PERMISSION_GROUP,
+  type Permission,
+} from '@/lib/permissions/keys'
+import { ROLE_PERMISSIONS } from '@/lib/permissions/role-templates'
 
 const ROLE_LABEL: Record<UserRole, string> = {
   main_admin: '본사 운영팀',
-  normal_admin: '일반 직원',
+  normal_admin: '상면관리자',
   partner_admin: '파트너',
 }
 
 const ROLE_FILTERS: Array<{ key: 'all' | UserRole; label: string }> = [
   { key: 'all', label: '전체' },
   { key: 'main_admin', label: '본사 운영팀' },
-  { key: 'normal_admin', label: '일반 직원' },
+  { key: 'normal_admin', label: '상면관리자' },
   { key: 'partner_admin', label: '파트너' },
 ]
 
@@ -44,6 +51,7 @@ interface UserDto {
   failedLoginCount: number
   accountCount: number
   activeSessionCount: number
+  extraPermissions: string[]
 }
 
 interface Props {
@@ -57,6 +65,7 @@ export function AccountsPermissionsClient({ users, currentUserId }: Props) {
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [banner, setBanner] = useState<{ tone: 'success' | 'danger'; msg: string } | null>(null)
+  const [managingPermsFor, setManagingPermsFor] = useState<UserDto | null>(null)
 
   const filtered = useMemo(() => {
     let items = users
@@ -151,10 +160,10 @@ export function AccountsPermissionsClient({ users, currentUserId }: Props) {
   return (
     <div className="space-y-4">
       {/* 요약 */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div data-annotate="role-summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <SummaryItem label="전체 계정" value={users.length} tone="primary" />
         <SummaryItem label="본사 운영팀" value={counts.main_admin} tone="info" />
-        <SummaryItem label="일반 직원" value={counts.normal_admin} tone="muted" />
+        <SummaryItem label="상면관리자" value={counts.normal_admin} tone="muted" />
         <SummaryItem label="파트너" value={counts.partner_admin} tone="success" />
       </div>
 
@@ -203,7 +212,7 @@ export function AccountsPermissionsClient({ users, currentUserId }: Props) {
       </div>
 
       {/* 테이블 */}
-      <Card className="shadow-sm">
+      <Card data-annotate="user-table" className="shadow-sm">
         <CardContent className="p-0">
           {filtered.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
@@ -248,7 +257,7 @@ export function AccountsPermissionsClient({ users, currentUserId }: Props) {
                           className="rounded-md border border-input bg-background px-2 py-1 text-xs disabled:opacity-50"
                         >
                           <option value="main_admin">본사 운영팀</option>
-                          <option value="normal_admin">일반 직원</option>
+                          <option value="normal_admin">상면관리자</option>
                           <option value="partner_admin">파트너</option>
                         </select>
                       </TableCell>
@@ -271,24 +280,24 @@ export function AccountsPermissionsClient({ users, currentUserId }: Props) {
                           <span className="text-muted-foreground">0</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="text-xs text-muted-foreground" suppressHydrationWarning>
                         {u.lastLoginAt
                           ? new Date(u.lastLoginAt).toLocaleString('ko-KR')
                           : '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex flex-wrap justify-end gap-1">
                           {locked ? (
                             <ActionBtn
                               icon={Unlock}
-                              label="잠금해제"
+                              label="계정 잠금 해제"
                               onClick={() => unlockUser(u)}
                               busy={busyId === `unlock-${u.id}`}
                             />
                           ) : (
                             <ActionBtn
                               icon={Lock}
-                              label="잠금"
+                              label="계정 잠금"
                               onClick={() => lockUser(u)}
                               disabled={isSelf}
                               busy={busyId === `lock-${u.id}`}
@@ -297,16 +306,21 @@ export function AccountsPermissionsClient({ users, currentUserId }: Props) {
                           )}
                           <ActionBtn
                             icon={LogOut}
-                            label="강제로그아웃"
+                            label="강제 로그아웃"
                             onClick={() => forceLogout(u)}
                             disabled={u.activeSessionCount === 0}
                             busy={busyId === `logout-${u.id}`}
                           />
                           <ActionBtn
                             icon={KeyRound}
-                            label="비번재발급"
+                            label="비번 재발급"
                             onClick={() => resetPassword(u)}
                             busy={busyId === `pwreset-${u.id}`}
+                          />
+                          <ActionBtn
+                            icon={Shield}
+                            label="권한 부여"
+                            onClick={() => setManagingPermsFor(u)}
                           />
                         </div>
                       </TableCell>
@@ -318,6 +332,173 @@ export function AccountsPermissionsClient({ users, currentUserId }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {managingPermsFor && (
+        <PermissionsModal
+          user={managingPermsFor}
+          onClose={() => setManagingPermsFor(null)}
+          onChanged={() => {
+            setManagingPermsFor(null)
+            router.refresh()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── 권한 관리 모달 ──────────────────────────────────────────────
+
+function PermissionsModal({
+  user,
+  onClose,
+  onChanged,
+}: {
+  user: UserDto
+  onClose: () => void
+  onChanged: () => void
+}) {
+  const basePermissions = useMemo(() => new Set(ROLE_PERMISSIONS[user.role]), [user.role])
+  const [extras, setExtras] = useState<Set<Permission>>(
+    () => new Set(user.extraPermissions as Permission[]),
+  )
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // 그룹별로 묶기
+  const grouped = useMemo(() => {
+    const g: Record<string, Permission[]> = {}
+    for (const p of ALL_PERMISSIONS) {
+      const grp = PERMISSION_GROUP[p]
+      if (!g[grp]) g[grp] = []
+      g[grp].push(p)
+    }
+    return g
+  }, [])
+
+  const toggle = (p: Permission) => {
+    if (basePermissions.has(p)) return  // role 기본은 토글 불가
+    const next = new Set(extras)
+    if (next.has(p)) next.delete(p)
+    else next.add(p)
+    setExtras(next)
+  }
+
+  const save = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      const original = new Set(user.extraPermissions as Permission[])
+      const toAdd = [...extras].filter((p) => !original.has(p))
+      const toRemove = [...original].filter((p) => !extras.has(p))
+
+      for (const p of toAdd) {
+        const r = await fetch(`/api/admin/users/${user.id}/permissions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ permission: p }),
+        })
+        if (!r.ok) {
+          const data = await r.json().catch(() => ({}))
+          setError(data.error ?? '권한 부여 실패')
+          return
+        }
+      }
+      for (const p of toRemove) {
+        await fetch(`/api/admin/users/${user.id}/permissions?permission=${p}`, {
+          method: 'DELETE',
+        })
+      }
+      onChanged()
+    } catch {
+      setError('네트워크 오류')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg bg-card shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b p-4">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            <h3 className="text-base font-semibold">{user.name}의 권한</h3>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            role 기본 권한은 회색(고정), 추가 grant는 토글 가능합니다.
+          </p>
+        </div>
+
+        <div className="space-y-4 p-4">
+          {error && (
+            <div className="flex items-start gap-2 rounded-md bg-danger-soft p-3 text-sm text-danger-soft-foreground">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {Object.entries(grouped).map(([groupName, perms]) => (
+            <div key={groupName}>
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">{groupName}</p>
+              <div className="space-y-1">
+                {perms.map((p) => {
+                  const isBase = basePermissions.has(p)
+                  const isGranted = extras.has(p)
+                  const effective = isBase || isGranted
+                  return (
+                    <label
+                      key={p}
+                      className={cn(
+                        'flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm',
+                        isBase
+                          ? 'bg-muted/40 cursor-not-allowed'
+                          : isGranted
+                            ? 'bg-primary/5 hover:bg-primary/10'
+                            : 'hover:bg-muted/30',
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={effective}
+                        disabled={isBase}
+                        onChange={() => toggle(p)}
+                        className="h-4 w-4 accent-[var(--primary)]"
+                      />
+                      <span className={cn('flex-1', isBase && 'text-muted-foreground')}>
+                        {PERMISSION_LABEL[p]}
+                      </span>
+                      {isBase && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          기본
+                        </span>
+                      )}
+                      {!isBase && isGranted && (
+                        <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+                          추가
+                        </span>
+                      )}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-end gap-2 border-t p-4">
+          <Button variant="outline" onClick={onClose}>취소</Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? '저장 중...' : '저장'}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -366,16 +547,17 @@ function ActionBtn({
   return (
     <Button
       variant="ghost"
-      size="icon"
+      size="sm"
       title={label}
       disabled={disabled || busy}
       onClick={onClick}
       className={cn(
-        'h-7 w-7',
-        tone === 'danger' && 'text-danger hover:bg-danger-soft',
+        'h-7 gap-1 px-2 text-xs font-medium',
+        tone === 'danger' && 'text-danger hover:bg-danger-soft hover:text-danger',
       )}
     >
-      <Icon className="h-3.5 w-3.5" />
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span>{label}</span>
     </Button>
   )
 }

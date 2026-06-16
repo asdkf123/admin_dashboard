@@ -93,7 +93,7 @@ export const CHARGER_STATUS_LABEL: Record<ChargerStatus, string> = {
   charging: '충전중',
   fault: '고장',
   maintenance: '점검중',
-  offline: '미연결',
+  offline: '통신장애',
 }
 
 export const FACILITY_TYPE_LABEL: Record<FacilityType, string> = {
