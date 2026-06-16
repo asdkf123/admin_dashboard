@@ -140,9 +140,9 @@ function LoginFormInner() {
 
           <Divider />
 
-          <Button variant="outline" className="h-11 w-full justify-center" disabled>
+          {/* <Button variant="outline" className="h-11 w-full justify-center" disabled>
             SSO로 계속하기 (준비 중)
-          </Button>
+          </Button> */}
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
             초대받지 못하셨다면 운영팀(1544-4279)으로 문의해주세요.
