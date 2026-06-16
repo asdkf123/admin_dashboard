@@ -61,14 +61,14 @@ async function main() {
   console.log(`✓ main_admin: ${admin.email}`)
   console.log(`  password: ${adminPassword}`)
 
-  // 일반 직원 1명 (테스트용)
+  // 상면관리자 1명 (테스트용)
   const staff = await prisma.user.upsert({
     where: { email: 'staff@chargev.local' },
     update: {},
     create: {
       email: 'staff@chargev.local',
       passwordHash: await hashPassword('Staff1234!@'),
-      name: '일반 직원',
+      name: '상면관리자',
       phone: '010-0000-0001',
       role: 'normal_admin',
       emailVerifiedAt: new Date(),
@@ -260,6 +260,77 @@ async function main() {
     })
     console.log(`✓ 샘플 자료 4건 생성`)
   }
+
+  // ─── 충전소 그룹 샘플 ─────────────────────────────────────────────
+  const groupCount = await prisma.stationGroup.count()
+  if (groupCount === 0) {
+    const seoul = await prisma.stationGroup.create({
+      data: { name: '서울 강남권', description: '강남, 서초, 송파, 잠실 일대 충전소', color: '#1570EF' },
+    })
+    const partnerGroup = await prisma.stationGroup.create({
+      data: { name: '판교 IT 단지', description: 'IT 기업 밀집 지역 충전소', color: '#12B76A' },
+    })
+    const publicGroup = await prisma.stationGroup.create({
+      data: { name: '공공시설', description: '관공서, 공공기관 부지 충전소', color: '#F79009' },
+    })
+
+    await prisma.stationGroupMember.createMany({
+      data: [
+        { groupId: seoul.id, stationId: 'CS001' },  // 강남
+        { groupId: seoul.id, stationId: 'CS089' },  // 잠실
+        { groupId: seoul.id, stationId: 'CS128' },  // 서초
+        { groupId: seoul.id, stationId: 'CS174' },  // 코엑스
+        { groupId: partnerGroup.id, stationId: 'CS112' },  // 판교
+        { groupId: publicGroup.id, stationId: 'CS201' },  // 광화문
+      ],
+      skipDuplicates: true,
+    })
+    console.log(`✓ 샘플 충전소 그룹 3개 생성`)
+  }
+
+  // ─── 권한별 차등 계정 (qq=최고, aa=중간, zz=말단) ─────────────────
+  // qq는 이미 main_admin으로 생성됨 (위에서). aa, zz는 normal_admin인데 권한 grant 차이.
+  // 비번은 qq와 동일하게 qwe123!@#로 통일.
+  const aaUser = await prisma.user.upsert({
+    where: { email: 'aa@aa.a' },
+    update: { passwordHash: await hashPassword('qwe123!@#') },
+    create: {
+      email: 'aa@aa.a',
+      passwordHash: await hashPassword('qwe123!@#'),
+      name: '중간 관리자',
+      phone: '010-0000-3333',
+      role: 'normal_admin',
+      emailVerifiedAt: new Date(),
+      phoneVerifiedAt: new Date(),
+    },
+  })
+  console.log(`✓ 중간 관리자: ${aaUser.email} / qwe123!@# (normal_admin + 추가 권한)`)
+
+  const zzUser = await prisma.user.upsert({
+    where: { email: 'zz@zz.z' },
+    update: { passwordHash: await hashPassword('qwe123!@#') },
+    create: {
+      email: 'zz@zz.z',
+      passwordHash: await hashPassword('qwe123!@#'),
+      name: '말단 직원',
+      phone: '010-0000-4444',
+      role: 'normal_admin',
+      emailVerifiedAt: new Date(),
+      phoneVerifiedAt: new Date(),
+    },
+  })
+  console.log(`✓ 말단 직원: ${zzUser.email} / qwe123!@# (normal_admin 기본 권한만)`)
+
+  // 중간 관리자(aa)에게 추가 권한 grant: 매출 조회, 정산 조회, 감사 로그, 공지 관리
+  const aaExtras = ['view:revenue', 'view:settlement', 'view:audit_log', 'manage:notices']
+  for (const p of aaExtras) {
+    await prisma.userPermission.upsert({
+      where: { userId_permission: { userId: aaUser.id, permission: p } },
+      update: {},
+      create: { userId: aaUser.id, permission: p },
+    })
+  }
+  console.log(`✓ 중간 관리자에게 추가 권한 4개 부여`)
 
   console.log('\n🎉 Seed complete.')
 }

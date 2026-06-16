@@ -139,6 +139,8 @@ model User {
   reportedTickets     MaintenanceTicket[]      @relation("TicketReporter")
   assignedTickets     MaintenanceTicket[]      @relation("TicketAssignee")
   inspections         Inspection[]             @relation("InspectionInspector")
+  extraPermissions    UserPermission[]         @relation("UserPermissionUser")
+  grantedPermissions  UserPermission[]         @relation("UserPermissionGrantedBy")
 
   @@index([businessNo])
   @@index([phone])
@@ -370,4 +372,49 @@ model Resource {
   @@index([category, publishedAt])
   @@index([pinned, publishedAt])
   @@map("resources")
+}
+
+// ─── Station Group (정산 그룹과 별개의 분류,태그 용도) ────────────────
+
+model StationGroup {
+  id          String                  @id @default(uuid())
+  name        String                  @unique
+  description String?                 @db.Text
+  color       String                  @default("#1570EF")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+
+  members     StationGroupMember[]
+
+  @@map("station_groups")
+}
+
+model StationGroupMember {
+  id          String       @id @default(uuid())
+  groupId     String       @map("group_id")
+  stationId   String       @map("station_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  group       StationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, stationId])
+  @@index([stationId])
+  @@map("station_group_members")
+}
+
+// ─── Permission (role 템플릿 위에 사용자별 추가 grant) ─────────────
+
+model UserPermission {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  permission      String   // e.g. 'view:revenue', 'manage:notices'
+  grantedAt       DateTime @default(now()) @map("granted_at")
+  grantedByUserId String?  @map("granted_by_user_id")
+
+  user      User  @relation("UserPermissionUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy User? @relation("UserPermissionGrantedBy", fields: [grantedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, permission])
+  @@index([permission])
+  @@map("user_permissions")
 }
