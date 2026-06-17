@@ -3,9 +3,18 @@ import { Megaphone, Phone, Activity } from 'lucide-react'
 import { noticeAdapter, NOTICE_TYPE_LABEL, type Notice } from '@/lib/adapters/notice'
 import { LoginForm } from './login-form'
 
+// Public 경로지만 매 요청마다 최신 공지 조회 + 빌드 시 DB 접근 회피
+export const dynamic = 'force-dynamic'
+
 export default async function LoginPage() {
   // 공지사항은 NoticeAdapter에서 — mock 단계에선 임시 DB, 운영 시 사내 CMS로 자동 전환.
-  const notices = await noticeAdapter.listRecent(3)
+  // DB 접근 실패해도 페이지는 정상 렌더링 (공지만 빈 배열)
+  let notices: Notice[] = []
+  try {
+    notices = await noticeAdapter.listRecent(3)
+  } catch (e) {
+    console.error('Failed to load notices on login page:', e)
+  }
 
   return (
     <div className="grid min-h-screen grid-cols-1 md:grid-cols-2">
